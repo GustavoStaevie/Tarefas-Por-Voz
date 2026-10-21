@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tarefas por Voz</title>
+<meta name="description" content="Fale suas tarefas e salve no Google Agenda.">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tarefas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="2" y="9.5" width="2.5" height="5" rx="1.25"/><rect x="6.5" y="6" width="2.5" height="12" rx="1.25"/><rect x="11" y="3" width="2.5" height="18" rx="1.25"/><rect x="15.5" y="7" width="2.5" height="10" rx="1.25"/><rect x="20" y="10" width="2.5" height="4" rx="1.25"/></svg>
+      </span>
+      <div>
+        <h1>Tarefas por Voz</h1>
+        <p class="subtitle">Fale, confira e salve no Google Agenda</p>
+      </div>
+    </div>
+    <div class="account">
+      <span id="mode-badge" class="status"><span class="status-dot"></span><span id="mode-label"></span></span>
+      <button id="auth-btn" class="btn btn-secondary btn-sm" type="button" hidden></button>
+    </div>
+  </header>
+
+  <main>
+    <div id="setup-banner" class="banner" hidden>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <p><strong>Modo demonstração:</strong> as tarefas ficam só neste aparelho.
+      Para salvar no Google Agenda, preencha <code>GOOGLE_CLIENT_ID</code> em <code>config.js</code>.</p>
+    </div>
+
+    <section class="card capture" aria-labelledby="new-task-title">
+      <h2 id="new-task-title" class="sr-only">Nova tarefa</h2>
+
+      <div class="mic-area">
+        <button id="mic-btn" class="mic" type="button" aria-pressed="false" aria-describedby="mic-status">
+          <svg class="icon icon-mic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
+          <svg class="icon icon-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+          <span class="sr-only" id="mic-sr">Gravar tarefa</span>
+        </button>
+        <p id="mic-label" class="mic-label">Toque para falar</p>
+        <p id="mic-status" class="hint">Ex.: “Entregar o relatório amanhã às 15h, prioridade alta”</p>
+        <p id="transcript" class="transcript" hidden></p>
+      </div>
+
+      <div class="divider"><span>ou digite</span></div>
+
+      <form id="text-form" class="text-form">
+        <input id="text-input" type="text" placeholder="Pagar a conta de luz dia 25, prioridade baixa" autocomplete="off" enterkeyhint="go" aria-label="Tarefa em texto">
+        <button class="btn btn-primary btn-icon" type="submit" aria-label="Interpretar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </form>
+
+      <form id="task-form" class="task-form" hidden>
+        <p class="form-intro field-wide">Confira e ajuste se precisar</p>
+        <label class="field field-wide">
+          <span>Tarefa</span>
+          <input id="f-title" required>
+        </label>
+        <label class="field field-date" id="date-field">
+          <span>Data de entrega</span>
+          <input id="f-date" type="date" required>
+          <small class="review-note">Não ouvi a data — coloquei hoje.</small>
+        </label>
+        <label class="field">
+          <span>Horário <em>opcional</em></span>
+          <input id="f-time" type="time">
+        </label>
+        <label class="field">
+          <span>Duração</span>
+          <select id="f-duration">
+            <option value="15">15 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">1 hora</option>
+            <option value="90">1h30</option>
+            <option value="120">2 horas</option>
+            <option value="180">3 horas</option>
+          </select>
+        </label>
+        <fieldset class="field field-wide" id="priority-field">
+          <legend>Prioridade</legend>
+          <div class="segmented">
+            <label><input type="radio" name="priority" value="baixa"><span><i class="dot baixa"></i>Baixa</span></label>
+            <label><input type="radio" name="priority" value="media"><span><i class="dot media"></i>Média</span></label>
+            <label><input type="radio" name="priority" value="alta"><span><i class="dot alta"></i>Alta</span></label>
+          </div>
+        </fieldset>
+        <p class="reminder field-wide">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span id="reminder-hint"></span>
+        </p>
+        <div class="actions field-wide">
+          <button type="button" id="discard-btn" class="btn btn-ghost">Descartar</button>
+          <button id="save-btn" class="btn btn-primary" type="submit">Adicionar à agenda</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="list-title">
+      <div class="list-header">
+        <h2 id="list-title">Minhas tarefas</h2>
+        <button id="refresh-btn" class="btn btn-ghost btn-icon btn-sm" type="button" aria-label="Atualizar" title="Atualizar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+      </div>
+      <div id="task-list" class="task-list"></div>
+    </section>
+  </main>
+</div>
+
+<template id="task-item">
+  <li class="task">
+    <input type="checkbox" class="task-done" aria-label="Marcar como concluída">
+    <div class="task-body">
+      <span class="task-title"></span>
+      <span class="task-meta"><i class="dot"></i><span class="task-when"></span></span>
+    </div>
+    <a class="task-link icon-btn" target="_blank" rel="noopener" title="Abrir no Google Agenda" aria-label="Abrir no Google Agenda">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+    </a>
+    <button class="task-delete icon-btn" type="button" title="Excluir" aria-label="Excluir tarefa">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    </button>
+  </li>
+</template>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

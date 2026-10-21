@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Testes do parser</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 24px; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #ccc; padding: 4px 8px; text-align: left; vertical-align: top; }
+  .ok { background: #e6f6ea; } .fail { background: #fde8e8; }
+  pre { margin: 0; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1 id="summary">Rodando…</h1>
+<table><thead><tr><th>Frase</th><th>Esperado</th><th>Obtido</th></tr></thead><tbody id="rows"></tbody></table>
+<script type="module">
+  import { parseTask } from './parser.js';
+
+  // Terça-feira, 20/10/2026, 10h
+  const NOW = new Date(2026, 9, 20, 10, 0);
+
+  const CASES = [
+    ['entregar o relatório financeiro amanhã às 15h prioridade alta',
+      { title: 'Entregar o relatório financeiro', date: '2026-10-21', time: '15:00', priority: 'alta' }],
+    ['ligar para o dentista sexta-feira às 9 e meia prioridade média',
+      { title: 'Ligar para o dentista', date: '2026-10-23', time: '09:30', priority: 'media' }],
+    ['pagar a conta de luz dia 25 prioridade baixa',
+      { title: 'Pagar a conta de luz', date: '2026-10-25', time: null, priority: 'baixa' }],
+    ['estudar inglês hoje às 14:30 por uma hora',
+      { title: 'Estudar inglês', date: '2026-10-20', time: '14:30', durationMin: 60, priority: 'media', prioritySpecified: false }],
+    ['reunião com a equipe dia 3 de novembro às 10 horas',
+      { title: 'Reunião com a equipe', date: '2026-11-03', time: '10:00' }],
+    ['tenho que comprar presente para a Ana até sábado, é urgente',
+      { title: 'Comprar presente para a Ana', date: '2026-10-24', time: null, priority: 'alta' }],
+    ['pegar as crianças na escola às duas da tarde',
+      { title: 'Pegar as crianças na escola', date: '2026-10-20', dateSpecified: false, time: '14:00' }],
+    ['consulta médica 05/11 às 8h',
+      { title: 'Consulta médica', date: '2026-11-05', time: '08:00' }],
+    ['academia amanhã de manhã',
+      { title: 'Academia', date: '2026-10-21', time: '09:00' }],
+    ['enviar proposta na próxima segunda com prioridade alta',
+      { title: 'Enviar proposta', date: '2026-10-26', priority: 'alta' }],
+    ['pagar a segunda via do boleto amanhã',
+      { title: 'Pagar a segunda via do boleto', date: '2026-10-21' }],
+    ['ir ao mercado às 3',
+      { title: 'Ir ao mercado', time: '15:00' }],
+    ['renovar passaporte daqui a 10 dias',
+      { title: 'Renovar passaporte', date: '2026-10-30' }],
+    ['festa às 8 da noite no sábado',
+      { title: 'Festa', date: '2026-10-24', time: '20:00' }],
+    ['almoço com cliente ao meio-dia e meia na quinta',
+      { title: 'Almoço com cliente', date: '2026-10-22', time: '12:30' }],
+    ['revisar contrato dia 15',
+      { title: 'Revisar contrato', date: '2026-11-15' }],
+    ['aniversário da mãe 2 de janeiro',
+      { title: 'Aniversário da mãe', date: '2027-01-02', time: null }],
+    ['entregar trabalho às vinte e uma horas de alta prioridade',
+      { title: 'Entregar trabalho', time: '21:00', priority: 'alta' }],
+    ['Treino de corrida terça que vem às 7 por 45 minutos',
+      { title: 'Treino de corrida', date: '2026-10-27', time: '07:00', durationMin: 45 }],
+    ['dentista dia 31',
+      { title: 'Dentista', date: '2026-10-31' }],
+  ];
+
+  let passed = 0;
+  const rows = document.getElementById('rows');
+  const results = [];
+  for (const [phrase, expected] of CASES) {
+    const got = parseTask(phrase, NOW);
+    const ok = Object.entries(expected).every(([k, v]) => got[k] === v);
+    if (ok) passed++;
+    results.push({ phrase, ok, got });
+    const tr = rows.insertRow();
+    tr.className = ok ? 'ok' : 'fail';
+    for (const cell of [phrase, JSON.stringify(expected, null, 1), JSON.stringify(got, null, 1)]) {
+      const pre = document.createElement('pre');
+      pre.textContent = cell;
+      tr.insertCell().append(pre);
+    }
+  }
+  document.getElementById('summary').textContent = `${passed}/${CASES.length} casos passaram`;
+  window.testResults = { passed, total: CASES.length, failures: results.filter((r) => !r.ok) };
+</script>
+</body>
+</html>
