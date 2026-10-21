@@ -1,4 +1,4 @@
-import { parseTask } from './parser.js';
+import { parseTask, CATEGORIES } from './parser.js';
 import { GoogleBackend, DemoBackend, AuthError, PRIORITIES, DEFAULT_DURATION, describeReminders } from './calendar.js';
 import { toISODate, addDays, fromISODate } from './dates.js';
 import { GOOGLE_CLIENT_ID, CALENDAR_ID } from './config.js';
@@ -11,6 +11,7 @@ const backend = GOOGLE_CLIENT_ID.trim()
 
 let tasks = [];
 let draftSource = null;
+let draftDeadline = false;
 
 let toastTimer;
 function toast(message, isError = false) {
@@ -133,7 +134,10 @@ function updateFormHints() {
 
 function showDraft(parsed) {
   draftSource = parsed.source;
+  draftDeadline = parsed.deadline;
   $('#f-title').value = parsed.title;
+  $('#f-category').value = parsed.category ?? '';
+  $('#date-label').textContent = parsed.deadline ? 'Prazo de entrega' : 'Data';
   $('#f-date').value = parsed.date;
   $('#f-time').value = parsed.time ?? '';
   $('#f-duration').value = String(parsed.durationMin ?? DEFAULT_DURATION);
@@ -156,13 +160,17 @@ function resetDraft() {
   $('#mic-status').hidden = false;
   $('#mic-label').textContent = 'Toque para falar';
   $('#date-field').classList.remove('needs-review');
+  $('#date-label').textContent = 'Data';
   draftSource = null;
+  draftDeadline = false;
 }
 
 function readDraft() {
   const time = $('#f-time').value || null;
   return {
     title: $('#f-title').value.trim(),
+    category: $('#f-category').value || null,
+    deadline: draftDeadline,
     date: $('#f-date').value,
     time,
     durationMin: time ? Number($('#f-duration').value) : null,
@@ -213,7 +221,9 @@ function describeWhen(task) {
     : task.date === tomorrow ? 'Amanhã'
     : weekdayFmt.format(fromISODate(task.date)).replace(/\./g, '');
   const time = task.time ? ` às ${task.time}` : ' · dia inteiro';
-  return `${day}${time} · ${PRIORITIES[task.priority].label}`;
+  const prefix = task.deadline ? 'Prazo: ' : '';
+  const category = task.category ? `${CATEGORIES[task.category]} · ` : '';
+  return `${category}${prefix}${day}${time} · ${PRIORITIES[task.priority].label}`;
 }
 
 function compareTasks(a, b) {

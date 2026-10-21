@@ -1,19 +1,25 @@
-# Tarefas por Voz 🎙️ → Google Agenda
+# Tarefas por Voz → Google Agenda
 
-App web em que você **fala** uma tarefa ("Entregar o relatório amanhã às 15h,
-prioridade alta") e ela vira um evento no seu **Google Agenda**, com cor e
-lembretes de acordo com a prioridade. Você também pode marcar tarefas como
-concluídas.
+App web em que você **fala** (ou digita) uma tarefa, por exemplo "Tenho um
+trabalho de história pra entregar até sexta, prioridade alta", e ela vira um
+evento no seu **Google Agenda**, com cor e lembretes de acordo com a prioridade.
+Você também pode marcar tarefas como concluídas.
 
 ## Como funciona
 
 | Você fala | O app entende |
 |---|---|
 | a tarefa | título do evento |
-| **dia**: "hoje", "amanhã", "sexta-feira", "na próxima segunda", "dia 25", "3 de novembro", "05/11", "daqui a 10 dias" | data de entrega |
+| **tipo**: trabalho, prova, projeto, aula, tarefa, missão e sinônimos (seminário, relatório, TCC, avaliação, simulado, exame, palestra, curso, lista de exercícios, dever de casa, lição, desafio, meta…) | tipo da tarefa; o título começa na palavra-chave ("tenho um **trabalho de história**…") |
+| **dia**: "hoje", "amanhã", "sexta-feira", "na próxima segunda", "dia 25", "3 de novembro", "05/11", "daqui a 10 dias" | data |
+| **prazo**: "tenho que entregar até…", "tenho prazo até…", "estou sendo cobrado pra…", "o prazo é…", "vence…", "a entrega é…", "data limite…", "tem que estar pronto até…" | a data vira **prazo de entrega** |
 | **horário** (opcional): "às 15h", "às 9 e meia", "às duas da tarde", "meio-dia", "de manhã" | início do evento |
 | **duração** (opcional): "por uma hora", "por 45 minutos" | fim do evento (padrão: 30 min) |
-| **prioridade**: "prioridade alta / média / baixa", "é urgente" | cor + lembretes (padrão: média) |
+| **prioridade alta**: "prioridade alta/máxima", "é urgente", "muito importante", "pra ontem", "sem falta" | cor vermelha + mais lembretes |
+| **prioridade média**: "prioridade média/normal", "mais ou menos importante" | cor amarela (é o padrão) |
+| **prioridade baixa**: "prioridade baixa", "sem pressa", "não é urgente", "quando der", "não é prioridade" | cor verde |
+
+A digitação usa exatamente as mesmas regras da voz.
 
 Antes de salvar, o app mostra o que entendeu num formulário para você conferir e
 corrigir. Se você não disser a data, ele coloca **hoje** e destaca o campo.

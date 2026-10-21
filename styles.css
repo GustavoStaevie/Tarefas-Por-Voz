@@ -91,7 +91,7 @@ main { display: grid; gap: 16px; }
   display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
 }
 .brand-mark svg { width: 22px; height: 22px; fill: currentColor; }
-h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.01em; }
+h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
 .subtitle { color: var(--muted); font-size: .85rem; }
 
 .account { display: flex; align-items: center; gap: 8px; flex: none; }
@@ -207,6 +207,7 @@ input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: n
 .field legend { margin-bottom: 6px; }
 .field em { font-style: normal; opacity: .7; }
 .field-wide { grid-column: 1 / -1; }
+.field-title { grid-column: span 2; }
 .review-note { display: none; color: var(--warn); font-size: .78rem; }
 .needs-review input { border-color: var(--warn-border); background: var(--warn-soft); }
 .needs-review .review-note { display: block; }
@@ -299,10 +300,14 @@ h2 { font-size: 1rem; font-weight: 600; }
   .subtitle { display: none; }
   .brand-mark { width: 36px; height: 36px; border-radius: 10px; }
   .task-form { grid-template-columns: 1fr 1fr; }
-  .field-date { grid-column: 1 / -1; }
+  .field-date, .field-title, .field-category { grid-column: 1 / -1; }
   .actions { flex-direction: column-reverse; }
   .actions .btn { width: 100%; }
   .mic { width: 96px; height: 96px; }
+}
+
+@media (max-width: 480px) {
+  .status:has(+ .btn:not([hidden])) { display: none; }
 }
 
 @media (max-width: 360px) {

@@ -1,4 +1,5 @@
 import { toISODate, toHHMM, fromISODate, fromDateAndTime, toLocalDateTime, addDays } from './dates.js';
+import { CATEGORIES } from './parser.js';
 
 export const PRIORITIES = {
   alta: { label: 'Alta', colorId: '11', rank: 0 },   // Tomate
@@ -53,11 +54,23 @@ function taskToEvent(task) {
   const p = PRIORITIES[task.priority] ?? PRIORITIES.media;
   const event = {
     summary: task.done ? `${DONE_PREFIX} ${task.title}` : task.title,
-    description: [`Prioridade: ${p.label}`, task.source ? `Ditado: "${task.source}"` : null, 'Criada pelo app Tarefas por Voz.']
-      .filter(Boolean).join('\n'),
+    description: [
+      task.category ? `Tipo: ${CATEGORIES[task.category]}` : null,
+      `Prioridade: ${p.label}`,
+      task.deadline ? 'Prazo de entrega' : null,
+      task.source ? `Ditado: "${task.source}"` : null,
+      'Criada pelo app Tarefas por Voz.',
+    ].filter(Boolean).join('\n'),
     colorId: task.done ? DONE_COLOR : p.colorId,
     extendedProperties: {
-      private: { app: APP_TAG, priority: task.priority, done: String(!!task.done), source: task.source ?? '' },
+      private: {
+        app: APP_TAG,
+        priority: task.priority,
+        category: task.category ?? '',
+        deadline: String(!!task.deadline),
+        done: String(!!task.done),
+        source: task.source ?? '',
+      },
     },
     reminders: { useDefault: false, overrides: task.done ? [] : REMINDERS[task.time ? 'timed' : 'allDay'][task.priority] },
   };
@@ -81,6 +94,8 @@ function eventToTask(event) {
     // emojis são da versão antiga
     title: event.summary?.replace(/^(?:✓|🔴|🟡|🟢|✅)\s*/u, '') ?? '(sem título)',
     priority: priv.priority in PRIORITIES ? priv.priority : 'media',
+    category: priv.category in CATEGORIES ? priv.category : null,
+    deadline: priv.deadline === 'true',
     done: priv.done === 'true',
     source: priv.source || null,
     link: event.htmlLink ?? null,

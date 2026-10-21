@@ -33,11 +33,62 @@ const NEXT_WEEK = '(?:\\s+(?:que\\s+vem|da\\s+semana\\s+que\\s+vem|da\\s+proxima
 const PERIOD = '(?:\\s+(?:da|de|a|na|pela)\\s+(manha|tarde|noite|madrugada))?';
 const MINUTES = `(?:\\s+e\\s+(meia|${NUM})(?:\\s+minutos?)?)?`;
 
+// frases que vêm logo antes da data: "tenho que entregar até", "o prazo é", "tô sendo cobrado pra"
+const LEAD = '\\b(?:' + [
+  '(?:(?:eu|a\\s+gente|nos)\\s+)?(?:tenho|tem|temos|preciso|precisa|precisamos|devo|deve|vou\\s+ter|vou\\s+precisar)\\s+(?:que\\s+|de\\s+)?(?:entregar|terminar|fazer|concluir|finalizar|mandar|enviar|apresentar|resolver|estudar)(?:\\s+(?:isso|isto|ele|ela|eles|elas|tudo))?',
+  '(?:(?:eu\\s+)?(?:tenho|temos|tem|com)\\s+)?(?:o\\s+|meu\\s+|nosso\\s+)?prazo(?:\\s+(?:final|maximo|de\\s+entrega))?(?:\\s+(?:e|eh|vai\\s+ser|sera|termina|acaba|vence))?',
+  '(?:(?:eu|a\\s+gente|nos)\\s+)?(?:estou|to|tou|estamos|fui|fomos)\\s+(?:sendo\\s+)?cobrad[oa]s?(?:\\s+(?:para|pra|por))?',
+  '(?:(?:a|o)\\s+)?(?:data\\s+(?:limite|final|de\\s+entrega)|deadline|vencimento)(?:\\s+(?:e|eh|vai\\s+ser|sera))?',
+  '(?:que\\s+)?(?:vence|vencendo|expira|termina|acaba)',
+  '(?:(?:pra|para|a\\s+ser|tem\\s+que\\s+ser|precisa\\s+ser)\\s+)?(?:entregar|entregue|apresentad[oa]|apresentar|terminad[oa])',
+  '(?:a\\s+)?entrega\\s+(?:e|eh|sera|vai\\s+ser|fica)',
+  '(?:tem|precisa|deve)\\s+(?:que\\s+|de\\s+)?(?:estar|ficar)\\s+pront[oa]s?',
+  '(?:que\\s+)?(?:vai\\s+ser|sera|cai|acontece|(?:esta|foi)\\s+marcad[oa])',
+  'que\\s+(?:e|eh)',
+].join('|') + ')\\s+';
+const L = `(?:${LEAD})?`;
+
+const DEADLINE_HINT = /prazo|entreg|cobrad|venc|limite|deadline|pront[oa]|termin|conclu|finaliz|expira|acaba|\bate\b/;
+
 const PRIORITY_WORDS = {
-  alta: 'alta', maxima: 'alta', urgente: 'alta',
-  media: 'media', normal: 'media',
-  baixa: 'baixa', minima: 'baixa',
+  alta: 'alta', alto: 'alta', maxima: 'alta', maximo: 'alta', urgente: 'alta', total: 'alta',
+  media: 'media', medio: 'media', normal: 'media', moderada: 'media', moderado: 'media',
+  baixa: 'baixa', baixo: 'baixa', minima: 'baixa', minimo: 'baixa',
 };
+
+export const CATEGORIES = {
+  trabalho: 'Trabalho',
+  prova: 'Prova',
+  projeto: 'Projeto',
+  aula: 'Aula',
+  tarefa: 'Tarefa',
+  missao: 'Missão',
+};
+
+const CATEGORY_WORDS = {
+  trabalho: ['trabalho', 'trabalhinho', 'seminario', 'apresentacao', 'relatorio', 'artigo', 'redacao', 'resenha', 'resumo', 'monografia', 'tcc', 'pesquisa'],
+  prova: ['prova', 'provinha', 'avaliacao', 'exame', 'teste', 'simulado', 'recuperacao', 'vestibular'],
+  projeto: ['projeto', 'prototipo'],
+  aula: ['aula', 'aulas', 'palestra', 'curso', 'workshop', 'oficina', 'treinamento', 'monitoria', 'reforco'],
+  tarefa: ['tarefa', 'tarefas', 'lista de exercicios', 'exercicios', 'exercicio', 'atividade', 'atividades', 'licao de casa', 'licao', 'dever de casa', 'dever', 'afazer'],
+  missao: ['missao', 'missoes', 'desafio', 'meta', 'objetivo'],
+};
+
+const KEYWORD_TO_CATEGORY = Object.fromEntries(
+  Object.entries(CATEGORY_WORDS).flatMap(([cat, words]) => words.map((w) => [w, cat])),
+);
+const KEYWORD_RE = new RegExp(
+  `\\b(${Object.keys(KEYWORD_TO_CATEGORY).sort((a, b) => b.length - a.length).map((w) => w.replace(/ /g, '\\s+')).join('|')})\\b`,
+);
+
+// o que pode vir antes da palavra-chave sem fazer parte do título ("tenho um trabalho de...")
+const KEYWORD_PREAMBLE = new RegExp('^(?:(?:eu|a\\s+gente|nos)\\s+)?(?:(?:' + [
+  'tenho|tem|temos|terei|teremos|vou\\s+ter|vai\\s+ter|vamos\\s+ter|ha|existe',
+  'marcaram|marquei|passaram|passou|(?:o|a)\\s+(?:professor|professora|chefe|gerente)\\s+(?:passou|pediu|marcou)',
+  '(?:estou|to|tou|estamos)\\s+sendo\\s+cobrad[oa]s?\\s+(?:pelo|pela|pelos|pelas|por|para|pra)',
+  '(?:tenho|preciso|temos|precisamos|vou|devo)\\s+(?:que\\s+|de\\s+)?(?:fazer|entregar|terminar|concluir|finalizar|apresentar|mandar|enviar)',
+  'lembrar\\s+d[aeo]s?|anotar?|anote|adicionar?|criar?|agendar?',
+].join('|') + ')\\s+)?(?:(?:um|uma|o|a|os|as|meu|minha|meus|minhas|nosso|nossa|mais\\s+um|mais\\s+uma|outro|outra|pelo|pela|pelos|pelas)\\s+)?$');
 
 function explicitDate(now, day, month, yearText) {
   if (month < 0 || month > 11) return null;
@@ -80,50 +131,67 @@ function clock(h, min, period, guessAfternoon) {
 
 const minutesOf = (s) => (!s ? 0 : s === 'meia' ? 30 : toNumber(s));
 
+// as negações vêm primeiro, senão "não é urgente" cai na regra de "urgente"
 const PRIORITY_RULES = [
   {
-    re: '\\b(?:(?:com|de|e)\\s+)?(?:prioridade|urgencia|importancia)(?:\\s+(?:e|eh))?\\s+(alta|media|baixa|maxima|minima|normal|urgente)\\b',
+    re: '\\b(?:(?:isso|que)\\s+)?nao\\s+(?:e|eh|tem|ha|esta)\\s+(?:(?:tao|muito|nada|com)\\s+)?(?:urgente|importante|pressa|urgencia|prioridade|prioritario|prioritaria)\\b',
+    resolve: () => 'baixa',
+  },
+  {
+    re: '\\b(?:sem\\s+(?:pressa|presa|urgencia)|(?:pouco|nada)\\s+(?:importante|urgente)|quando\\s+(?:der|puder|sobrar\\s+tempo|tiver\\s+tempo)|tranquilo)\\b',
+    resolve: () => 'baixa',
+  },
+  {
+    re: '\\b(?:(?:com|de|e|a|o)\\s+)?(?:nivel\\s+de\\s+)?(?:prioridade|urgencia|importancia)(?:\\s+(?:e|eh|vai\\s+ser|sera|de|esta))?\\s+(alta|alto|media|medio|baixa|baixo|maxima|maximo|minima|minimo|normal|moderada|moderado|urgente|total)\\b',
     resolve: (m) => PRIORITY_WORDS[m[1]],
   },
   {
-    re: '\\b(?:(?:com|de)\\s+)?(alta|media|baixa)\\s+prioridade\\b',
+    re: '\\b(?:(?:com|de)\\s+)?(alta|media|baixa|maxima|minima|total)\\s+prioridade\\b',
     resolve: (m) => PRIORITY_WORDS[m[1]],
   },
   {
-    re: '\\b(?:(?:e|isso\\s+e)\\s+)?(?:urgente|urgentemente)\\b',
+    re: '\\b(?:(?:e|eh|isso\\s+e|que\\s+e)\\s+)?(?:mais\\s+ou\\s+menos|meio)\\s+(?:importante|urgente)\\b',
+    resolve: () => 'media',
+  },
+  {
+    re: '\\b(?:(?:e|eh|isso\\s+e|que\\s+e|esta)\\s+)?(?:muito\\s+)?(?:urgente|urgentissim[oa]|urgentemente|importante|importantissim[oa]|critic[oa]|prioritari[oa]|prioridade)\\b',
+    resolve: () => 'alta',
+  },
+  {
+    re: '\\b(?:(?:e|eh)\\s+)?(?:pra|para)\\s+ontem\\b|\\bo\\s+(?:quanto|mais\\s+rapido)\\s+(?:antes|possivel)\\b|\\b(?:sem\\s+falta|impreterivelmente|asap)\\b',
     resolve: () => 'alta',
   },
 ];
 
 const DATE_RULES = [
-  { re: `${PRE}\\bdepois\\s+de\\s+amanha\\b`, resolve: (m, now) => addDays(now, 2) },
-  { re: `${PRE}\\bamanha\\b`, resolve: (m, now) => addDays(now, 1) },
-  { re: `${PRE}\\bhoje\\b`, resolve: (m, now) => startOfDay(now) },
+  { re: `${L}${PRE}\\bdepois\\s+de\\s+amanha\\b`, resolve: (m, now) => addDays(now, 2) },
+  { re: `${L}${PRE}\\bamanha\\b`, resolve: (m, now) => addDays(now, 1) },
+  { re: `${L}${PRE}\\bhoje\\b`, resolve: (m, now) => startOfDay(now) },
   {
-    re: `${PRE}\\b(?:dia\\s+)?(\\d{1,2})\\/(\\d{1,2})(?:\\/(\\d{2,4}))?\\b`,
+    re: `${L}${PRE}\\b(?:dia\\s+)?(\\d{1,2})\\/(\\d{1,2})(?:\\/(\\d{2,4}))?\\b`,
     resolve: (m, now) => explicitDate(now, Number(m[1]), Number(m[2]) - 1, m[3]),
   },
   {
-    re: `${PRE}\\b(?:dia\\s+)?(${NUM})\\s+de\\s+(${MONTH_RE})(?:\\s+de\\s+(\\d{4}))?\\b`,
+    re: `${L}${PRE}\\b(?:dia\\s+)?(${NUM})\\s+de\\s+(${MONTH_RE})(?:\\s+de\\s+(\\d{4}))?\\b`,
     resolve: (m, now) => explicitDate(now, toNumber(m[1]), MONTHS[m[2]], m[3]),
   },
-  { re: `${PRE}\\bdia\\s+(${NUM})\\b`, resolve: (m, now) => dayOfMonth(now, toNumber(m[1])) },
+  { re: `${L}${PRE}\\bdia\\s+(${NUM})\\b`, resolve: (m, now) => dayOfMonth(now, toNumber(m[1])) },
   {
-    re: `${PRE}\\b(?:(?:proxima|proximo)\\s+)?(?:(${WORKDAY_RE})[- ]feira|(sabado|domingo))${NEXT_WEEK}\\b`,
+    re: `${L}${PRE}\\b(?:(?:proxima|proximo)\\s+)?(?:(${WORKDAY_RE})[- ]feira|(sabado|domingo))${NEXT_WEEK}\\b`,
     resolve: (m, now) => nextWeekday(now, m[1] || m[2]),
   },
   {
     // sem preposição, "segunda via" virava segunda-feira
-    re: `\\b(?:(?:para|pra|ate|na|nesta|nessa|proxima)\\s+){1,2}(${WORKDAY_RE})(?!\\s+(?:via|vez|chamada|opcao|parte|fase|etapa))${NEXT_WEEK}\\b`,
+    re: `${L}\\b(?:(?:para|pra|ate|na|nesta|nessa|proxima)\\s+){1,2}(${WORKDAY_RE})(?!\\s+(?:via|vez|chamada|opcao|parte|fase|etapa))${NEXT_WEEK}\\b`,
     resolve: (m, now) => nextWeekday(now, m[1]),
   },
-  { re: `\\b(${WORKDAY_RE})\\s+que\\s+vem\\b`, resolve: (m, now) => nextWeekday(now, m[1]) },
+  { re: `${L}\\b(${WORKDAY_RE})\\s+que\\s+vem\\b`, resolve: (m, now) => nextWeekday(now, m[1]) },
   {
-    re: `${PRE}\\b(?:daqui\\s+a|dentro\\s+de|em)\\s+(${NUM})\\s+dias?\\b`,
+    re: `${L}${PRE}\\b(?:daqui\\s+a|dentro\\s+de|em)\\s+(${NUM})\\s+dias?\\b`,
     resolve: (m, now) => addDays(now, toNumber(m[1])),
   },
   {
-    re: `${PRE}\\b(?:semana\\s+que\\s+vem|proxima\\s+semana)\\b`,
+    re: `${L}${PRE}\\b(?:semana\\s+que\\s+vem|proxima\\s+semana)\\b`,
     resolve: (m, now) => addDays(now, 7),
   },
 ];
@@ -171,7 +239,8 @@ const COMPILED = {
   time: compile(TIME_RULES),
 };
 
-const LEADING_FILLER = /^(?:(?:eu\s+)?(?:tenho\s+que|tenho\s+de|preciso\s+de|preciso|lembrar\s+de|me\s+lembre\s+de|lembre-me\s+de|lembrete\s+(?:de|para)|nova\s+tarefa|tarefa|adicionar|agendar)\s*[:,]?\s+)+/;
+const LEADING_FILLER = /^(?:(?:eu\s+)?(?:tenho\s+que|tenho\s+de|preciso\s+de|preciso|lembrar\s+de|me\s+lembre\s+de|lembre-me\s+de|lembrete\s+(?:de|para)|nova\s+tarefa|adicionar|agendar)\s*[:,]?\s+)+/;
+const TRAILING_LEAD = /[\s,;]+(?:e\s+)?(?:eu\s+)?(?:tenho|preciso|temos|vou\s+ter)\s+(?:que|de)\s+(?:entregar|fazer|terminar|concluir)(?:\s+(?:isso|isto|ele|ela|tudo))?[\s,;.]*$/;
 const TRAILING_CONNECTOR = /(?:[\s,;:.-]+(?:para|pra|ate|no|na|em|de|do|da|e|com|as|a|o|que))+[\s,;:.-]*$/;
 
 function fold(text) {
@@ -183,6 +252,13 @@ function stripFolded(text, re) {
   return m ? text.slice(0, m.index) + text.slice(m.index + m[0].length) : text;
 }
 
+function stripKeywordPreamble(text) {
+  const folded = fold(text);
+  const m = KEYWORD_RE.exec(folded);
+  if (!m || !KEYWORD_PREAMBLE.test(folded.slice(0, m.index))) return text;
+  return text.slice(m.index);
+}
+
 function buildTitle(text, spans) {
   let out = '';
   let cursor = 0;
@@ -192,16 +268,23 @@ function buildTitle(text, spans) {
   }
   out += text.slice(cursor);
 
-  out = out.replace(/\s+/g, ' ').replace(/\s+([,;.!?])/g, '$1').trim();
+  out = out.replace(/\s+/g, ' ').replace(/\s+([,;.!?])/g, '$1').replace(/([,;])(?:\s*[,;])+/g, '$1').trim();
+  out = stripKeywordPreamble(out);
   out = stripFolded(out, LEADING_FILLER);
+  out = stripFolded(out, TRAILING_LEAD);
   out = stripFolded(out, TRAILING_CONNECTOR);
   out = out.replace(/^[\s,;:.-]+|[\s,;:.-]+$/g, '').trim();
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
+function detectCategory(title) {
+  const m = KEYWORD_RE.exec(fold(title));
+  return m ? KEYWORD_TO_CATEGORY[m[1].replace(/\s+/g, ' ')] : null;
+}
+
 export function parseTask(input, now = new Date()) {
   const text = input.normalize('NFC').trim();
-  const state = { folded: fold(text), spans: [] };
+  const state = { folded: fold(text), spans: [], lastMatch: '' };
 
   const take = (rules) => {
     for (const rule of rules) {
@@ -211,6 +294,7 @@ export function parseTask(input, now = new Date()) {
       if (value == null) continue;
       const end = m.index + m[0].length;
       state.spans.push([m.index, end]);
+      state.lastMatch = m[0];
       state.folded = state.folded.slice(0, m.index) + ' '.repeat(m[0].length) + state.folded.slice(end);
       return value;
     }
@@ -219,13 +303,17 @@ export function parseTask(input, now = new Date()) {
 
   const priority = take(COMPILED.priority);
   const date = take(COMPILED.date);
+  const deadline = date != null && DEADLINE_HINT.test(state.lastMatch);
   const durationMin = take(COMPILED.duration);
   const time = take(COMPILED.time);
+  const title = buildTitle(text, state.spans);
 
   return {
-    title: buildTitle(text, state.spans),
+    title,
+    category: detectCategory(title),
     date: toISODate(date ?? now),
     dateSpecified: date != null,
+    deadline,
     time,
     durationMin,
     priority: priority ?? 'media',

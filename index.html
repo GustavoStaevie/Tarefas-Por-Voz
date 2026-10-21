@@ -69,12 +69,24 @@
 
       <form id="task-form" class="task-form" hidden>
         <p class="form-intro field-wide">Confira e ajuste se precisar</p>
-        <label class="field field-wide">
+        <label class="field field-title">
           <span>Tarefa</span>
           <input id="f-title" required>
         </label>
+        <label class="field field-category">
+          <span>Tipo</span>
+          <select id="f-category">
+            <option value="">Nenhum</option>
+            <option value="trabalho">Trabalho</option>
+            <option value="prova">Prova</option>
+            <option value="projeto">Projeto</option>
+            <option value="aula">Aula</option>
+            <option value="tarefa">Tarefa</option>
+            <option value="missao">Missão</option>
+          </select>
+        </label>
         <label class="field field-date" id="date-field">
-          <span>Data de entrega</span>
+          <span id="date-label">Data</span>
           <input id="f-date" type="date" required>
           <small class="review-note">Não ouvi a data — coloquei hoje.</small>
         </label>

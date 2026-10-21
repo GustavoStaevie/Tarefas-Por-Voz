@@ -20,6 +20,17 @@ completo de cada arquivo.
   - Modo demonstração.
   - Interface com microfone, formulário de revisão e lista de tarefas.
 
+### Sessão 3: entender melhor a fala e o texto
+
+- **Pedido:** reconhecer palavras-chave de tipo (trabalho, prova, projeto, aula, tarefa, missão e sinônimos), as frases que vêm antes de um prazo ("tenho que entregar até", "tenho prazo até", "estou sendo cobrado"…) e a prioridade dita de várias formas, tanto na voz quanto no texto digitado.
+- **Feito:**
+  - Campo **Tipo** no formulário, salvo no evento e mostrado na lista.
+  - O título passa a começar na palavra-chave ("tenho um trabalho de história…" → "Trabalho de história…").
+  - Frases de prazo são reconhecidas antes da data e removidas do título; a data vira **Prazo de entrega**.
+  - Prioridade com muito mais formas de falar, incluindo negações ("não é urgente" → baixa).
+  - 20 testes novos (40 no total, todos passando).
+  - Topo da página corrigido no celular quando está desconectado.
+
 ### Sessão 2: novo visual e uso no celular
 
 - **Pedido:**
@@ -73,10 +84,14 @@ completo de cada arquivo.
 | Você fala | Exemplos | Vira |
 |---|---|---|
 | A tarefa | "entregar o relatório financeiro" | Título do evento |
+| Tipo | trabalho, seminário, apresentação, relatório, artigo, redação, TCC · prova, avaliação, exame, teste, simulado, recuperação · projeto · aula, palestra, curso, workshop, monitoria · tarefa, atividade, lista de exercícios, lição, dever de casa · missão, desafio, meta, objetivo | Campo Tipo; o título começa na palavra-chave |
+| Prazo | tenho que entregar (isso) até, tenho prazo até, o prazo é, estou/tô sendo cobrado pra, a entrega é, vence, data limite, tem que estar pronto até, pra entregar até | A data vira "Prazo de entrega" |
 | Dia | hoje, amanhã, depois de amanhã, sexta-feira, na próxima segunda, terça que vem, dia 25, 3 de novembro, 05/11, daqui a 10 dias, semana que vem | Data de entrega |
 | Horário (opcional) | às 15h, 14:30, às 9 e meia, às duas da tarde, 8 da noite, meio-dia, de manhã (9h), à tarde (14h), à noite (19h) | Início do evento |
 | Duração (opcional) | por uma hora, por 45 minutos, por meia hora | Fim do evento (padrão: 30 min) |
-| Prioridade | prioridade alta/média/baixa, alta prioridade, é urgente | Cor e lembretes (padrão: média) |
+| Prioridade alta | prioridade alta/máxima, alta prioridade, é urgente, muito importante, crítico, pra ontem, o quanto antes, sem falta | Vermelho e mais lembretes |
+| Prioridade média | prioridade média/normal/moderada, mais ou menos importante | Amarelo (padrão) |
+| Prioridade baixa | prioridade baixa/mínima, sem pressa, não é urgente, não é prioridade, pouco importante, quando der | Verde |
 
 Regras importantes do parser:
 
@@ -146,7 +161,7 @@ Tarefas-Por-Voz/
 ├── manifest.webmanifest  # dados do app instalável (nome, cor, ícones)
 ├── sw.js                 # service worker: abre rápido e funciona sem internet
 ├── icons/                # favicon.svg, ícones 192/512, maskable, apple-touch-icon
-├── tests.html            # 20 testes automáticos do parser
+├── tests.html            # 40 testes automáticos do parser
 ├── .gitignore            # arquivos que não vão para o GitHub
 ├── README.md             # guia rápido de uso e configuração
 └── PROJETO.md            # este arquivo
@@ -220,7 +235,7 @@ O login dura cerca de 1 hora. Depois disso, o app pede para entrar de novo, e ba
 
 | Teste | Resultado |
 |---|---|
-| Parser: 20 frases reais (`tests.html`) | ✅ 20/20 passaram (sessão 1) |
+| Parser: 40 frases reais (`tests.html`) | ✅ 40/40 passaram (sessão 3) |
 | Digitar uma tarefa → formulário preenchido corretamente | ✅ |
 | Salvar, listar e concluir tarefas | ✅ (modo demonstração, sessão 1) |
 | Novo layout no computador (1200px) e no celular (375px), tema escuro | ✅ conferido por captura de tela (sessão 2) |
@@ -324,12 +339,24 @@ export const CALENDAR_ID = 'primary';
 
       <form id="task-form" class="task-form" hidden>
         <p class="form-intro field-wide">Confira e ajuste se precisar</p>
-        <label class="field field-wide">
+        <label class="field field-title">
           <span>Tarefa</span>
           <input id="f-title" required>
         </label>
+        <label class="field field-category">
+          <span>Tipo</span>
+          <select id="f-category">
+            <option value="">Nenhum</option>
+            <option value="trabalho">Trabalho</option>
+            <option value="prova">Prova</option>
+            <option value="projeto">Projeto</option>
+            <option value="aula">Aula</option>
+            <option value="tarefa">Tarefa</option>
+            <option value="missao">Missão</option>
+          </select>
+        </label>
         <label class="field field-date" id="date-field">
-          <span>Data de entrega</span>
+          <span id="date-label">Data</span>
           <input id="f-date" type="date" required>
           <small class="review-note">Não ouvi a data — coloquei hoje.</small>
         </label>
@@ -497,7 +524,7 @@ main { display: grid; gap: 16px; }
   display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
 }
 .brand-mark svg { width: 22px; height: 22px; fill: currentColor; }
-h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.01em; }
+h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
 .subtitle { color: var(--muted); font-size: .85rem; }
 
 .account { display: flex; align-items: center; gap: 8px; flex: none; }
@@ -613,6 +640,7 @@ input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: n
 .field legend { margin-bottom: 6px; }
 .field em { font-style: normal; opacity: .7; }
 .field-wide { grid-column: 1 / -1; }
+.field-title { grid-column: span 2; }
 .review-note { display: none; color: var(--warn); font-size: .78rem; }
 .needs-review input { border-color: var(--warn-border); background: var(--warn-soft); }
 .needs-review .review-note { display: block; }
@@ -705,10 +733,14 @@ h2 { font-size: 1rem; font-weight: 600; }
   .subtitle { display: none; }
   .brand-mark { width: 36px; height: 36px; border-radius: 10px; }
   .task-form { grid-template-columns: 1fr 1fr; }
-  .field-date { grid-column: 1 / -1; }
+  .field-date, .field-title, .field-category { grid-column: 1 / -1; }
   .actions { flex-direction: column-reverse; }
   .actions .btn { width: 100%; }
   .mic { width: 96px; height: 96px; }
+}
+
+@media (max-width: 480px) {
+  .status:has(+ .btn:not([hidden])) { display: none; }
 }
 
 @media (max-width: 360px) {
@@ -728,7 +760,7 @@ h2 { font-size: 1rem; font-weight: 600; }
 ### `app.js`
 
 ```js
-import { parseTask } from './parser.js';
+import { parseTask, CATEGORIES } from './parser.js';
 import { GoogleBackend, DemoBackend, AuthError, PRIORITIES, DEFAULT_DURATION, describeReminders } from './calendar.js';
 import { toISODate, addDays, fromISODate } from './dates.js';
 import { GOOGLE_CLIENT_ID, CALENDAR_ID } from './config.js';
@@ -741,6 +773,7 @@ const backend = GOOGLE_CLIENT_ID.trim()
 
 let tasks = [];
 let draftSource = null;
+let draftDeadline = false;
 
 let toastTimer;
 function toast(message, isError = false) {
@@ -863,7 +896,10 @@ function updateFormHints() {
 
 function showDraft(parsed) {
   draftSource = parsed.source;
+  draftDeadline = parsed.deadline;
   $('#f-title').value = parsed.title;
+  $('#f-category').value = parsed.category ?? '';
+  $('#date-label').textContent = parsed.deadline ? 'Prazo de entrega' : 'Data';
   $('#f-date').value = parsed.date;
   $('#f-time').value = parsed.time ?? '';
   $('#f-duration').value = String(parsed.durationMin ?? DEFAULT_DURATION);
@@ -886,13 +922,17 @@ function resetDraft() {
   $('#mic-status').hidden = false;
   $('#mic-label').textContent = 'Toque para falar';
   $('#date-field').classList.remove('needs-review');
+  $('#date-label').textContent = 'Data';
   draftSource = null;
+  draftDeadline = false;
 }
 
 function readDraft() {
   const time = $('#f-time').value || null;
   return {
     title: $('#f-title').value.trim(),
+    category: $('#f-category').value || null,
+    deadline: draftDeadline,
     date: $('#f-date').value,
     time,
     durationMin: time ? Number($('#f-duration').value) : null,
@@ -943,7 +983,9 @@ function describeWhen(task) {
     : task.date === tomorrow ? 'Amanhã'
     : weekdayFmt.format(fromISODate(task.date)).replace(/\./g, '');
   const time = task.time ? ` às ${task.time}` : ' · dia inteiro';
-  return `${day}${time} · ${PRIORITIES[task.priority].label}`;
+  const prefix = task.deadline ? 'Prazo: ' : '';
+  const category = task.category ? `${CATEGORIES[task.category]} · ` : '';
+  return `${category}${prefix}${day}${time} · ${PRIORITIES[task.priority].label}`;
 }
 
 function compareTasks(a, b) {
@@ -1133,11 +1175,62 @@ const NEXT_WEEK = '(?:\\s+(?:que\\s+vem|da\\s+semana\\s+que\\s+vem|da\\s+proxima
 const PERIOD = '(?:\\s+(?:da|de|a|na|pela)\\s+(manha|tarde|noite|madrugada))?';
 const MINUTES = `(?:\\s+e\\s+(meia|${NUM})(?:\\s+minutos?)?)?`;
 
+// frases que vêm logo antes da data: "tenho que entregar até", "o prazo é", "tô sendo cobrado pra"
+const LEAD = '\\b(?:' + [
+  '(?:(?:eu|a\\s+gente|nos)\\s+)?(?:tenho|tem|temos|preciso|precisa|precisamos|devo|deve|vou\\s+ter|vou\\s+precisar)\\s+(?:que\\s+|de\\s+)?(?:entregar|terminar|fazer|concluir|finalizar|mandar|enviar|apresentar|resolver|estudar)(?:\\s+(?:isso|isto|ele|ela|eles|elas|tudo))?',
+  '(?:(?:eu\\s+)?(?:tenho|temos|tem|com)\\s+)?(?:o\\s+|meu\\s+|nosso\\s+)?prazo(?:\\s+(?:final|maximo|de\\s+entrega))?(?:\\s+(?:e|eh|vai\\s+ser|sera|termina|acaba|vence))?',
+  '(?:(?:eu|a\\s+gente|nos)\\s+)?(?:estou|to|tou|estamos|fui|fomos)\\s+(?:sendo\\s+)?cobrad[oa]s?(?:\\s+(?:para|pra|por))?',
+  '(?:(?:a|o)\\s+)?(?:data\\s+(?:limite|final|de\\s+entrega)|deadline|vencimento)(?:\\s+(?:e|eh|vai\\s+ser|sera))?',
+  '(?:que\\s+)?(?:vence|vencendo|expira|termina|acaba)',
+  '(?:(?:pra|para|a\\s+ser|tem\\s+que\\s+ser|precisa\\s+ser)\\s+)?(?:entregar|entregue|apresentad[oa]|apresentar|terminad[oa])',
+  '(?:a\\s+)?entrega\\s+(?:e|eh|sera|vai\\s+ser|fica)',
+  '(?:tem|precisa|deve)\\s+(?:que\\s+|de\\s+)?(?:estar|ficar)\\s+pront[oa]s?',
+  '(?:que\\s+)?(?:vai\\s+ser|sera|cai|acontece|(?:esta|foi)\\s+marcad[oa])',
+  'que\\s+(?:e|eh)',
+].join('|') + ')\\s+';
+const L = `(?:${LEAD})?`;
+
+const DEADLINE_HINT = /prazo|entreg|cobrad|venc|limite|deadline|pront[oa]|termin|conclu|finaliz|expira|acaba|\bate\b/;
+
 const PRIORITY_WORDS = {
-  alta: 'alta', maxima: 'alta', urgente: 'alta',
-  media: 'media', normal: 'media',
-  baixa: 'baixa', minima: 'baixa',
+  alta: 'alta', alto: 'alta', maxima: 'alta', maximo: 'alta', urgente: 'alta', total: 'alta',
+  media: 'media', medio: 'media', normal: 'media', moderada: 'media', moderado: 'media',
+  baixa: 'baixa', baixo: 'baixa', minima: 'baixa', minimo: 'baixa',
 };
+
+export const CATEGORIES = {
+  trabalho: 'Trabalho',
+  prova: 'Prova',
+  projeto: 'Projeto',
+  aula: 'Aula',
+  tarefa: 'Tarefa',
+  missao: 'Missão',
+};
+
+const CATEGORY_WORDS = {
+  trabalho: ['trabalho', 'trabalhinho', 'seminario', 'apresentacao', 'relatorio', 'artigo', 'redacao', 'resenha', 'resumo', 'monografia', 'tcc', 'pesquisa'],
+  prova: ['prova', 'provinha', 'avaliacao', 'exame', 'teste', 'simulado', 'recuperacao', 'vestibular'],
+  projeto: ['projeto', 'prototipo'],
+  aula: ['aula', 'aulas', 'palestra', 'curso', 'workshop', 'oficina', 'treinamento', 'monitoria', 'reforco'],
+  tarefa: ['tarefa', 'tarefas', 'lista de exercicios', 'exercicios', 'exercicio', 'atividade', 'atividades', 'licao de casa', 'licao', 'dever de casa', 'dever', 'afazer'],
+  missao: ['missao', 'missoes', 'desafio', 'meta', 'objetivo'],
+};
+
+const KEYWORD_TO_CATEGORY = Object.fromEntries(
+  Object.entries(CATEGORY_WORDS).flatMap(([cat, words]) => words.map((w) => [w, cat])),
+);
+const KEYWORD_RE = new RegExp(
+  `\\b(${Object.keys(KEYWORD_TO_CATEGORY).sort((a, b) => b.length - a.length).map((w) => w.replace(/ /g, '\\s+')).join('|')})\\b`,
+);
+
+// o que pode vir antes da palavra-chave sem fazer parte do título ("tenho um trabalho de...")
+const KEYWORD_PREAMBLE = new RegExp('^(?:(?:eu|a\\s+gente|nos)\\s+)?(?:(?:' + [
+  'tenho|tem|temos|terei|teremos|vou\\s+ter|vai\\s+ter|vamos\\s+ter|ha|existe',
+  'marcaram|marquei|passaram|passou|(?:o|a)\\s+(?:professor|professora|chefe|gerente)\\s+(?:passou|pediu|marcou)',
+  '(?:estou|to|tou|estamos)\\s+sendo\\s+cobrad[oa]s?\\s+(?:pelo|pela|pelos|pelas|por|para|pra)',
+  '(?:tenho|preciso|temos|precisamos|vou|devo)\\s+(?:que\\s+|de\\s+)?(?:fazer|entregar|terminar|concluir|finalizar|apresentar|mandar|enviar)',
+  'lembrar\\s+d[aeo]s?|anotar?|anote|adicionar?|criar?|agendar?',
+].join('|') + ')\\s+)?(?:(?:um|uma|o|a|os|as|meu|minha|meus|minhas|nosso|nossa|mais\\s+um|mais\\s+uma|outro|outra|pelo|pela|pelos|pelas)\\s+)?$');
 
 function explicitDate(now, day, month, yearText) {
   if (month < 0 || month > 11) return null;
@@ -1180,50 +1273,67 @@ function clock(h, min, period, guessAfternoon) {
 
 const minutesOf = (s) => (!s ? 0 : s === 'meia' ? 30 : toNumber(s));
 
+// as negações vêm primeiro, senão "não é urgente" cai na regra de "urgente"
 const PRIORITY_RULES = [
   {
-    re: '\\b(?:(?:com|de|e)\\s+)?(?:prioridade|urgencia|importancia)(?:\\s+(?:e|eh))?\\s+(alta|media|baixa|maxima|minima|normal|urgente)\\b',
+    re: '\\b(?:(?:isso|que)\\s+)?nao\\s+(?:e|eh|tem|ha|esta)\\s+(?:(?:tao|muito|nada|com)\\s+)?(?:urgente|importante|pressa|urgencia|prioridade|prioritario|prioritaria)\\b',
+    resolve: () => 'baixa',
+  },
+  {
+    re: '\\b(?:sem\\s+(?:pressa|presa|urgencia)|(?:pouco|nada)\\s+(?:importante|urgente)|quando\\s+(?:der|puder|sobrar\\s+tempo|tiver\\s+tempo)|tranquilo)\\b',
+    resolve: () => 'baixa',
+  },
+  {
+    re: '\\b(?:(?:com|de|e|a|o)\\s+)?(?:nivel\\s+de\\s+)?(?:prioridade|urgencia|importancia)(?:\\s+(?:e|eh|vai\\s+ser|sera|de|esta))?\\s+(alta|alto|media|medio|baixa|baixo|maxima|maximo|minima|minimo|normal|moderada|moderado|urgente|total)\\b',
     resolve: (m) => PRIORITY_WORDS[m[1]],
   },
   {
-    re: '\\b(?:(?:com|de)\\s+)?(alta|media|baixa)\\s+prioridade\\b',
+    re: '\\b(?:(?:com|de)\\s+)?(alta|media|baixa|maxima|minima|total)\\s+prioridade\\b',
     resolve: (m) => PRIORITY_WORDS[m[1]],
   },
   {
-    re: '\\b(?:(?:e|isso\\s+e)\\s+)?(?:urgente|urgentemente)\\b',
+    re: '\\b(?:(?:e|eh|isso\\s+e|que\\s+e)\\s+)?(?:mais\\s+ou\\s+menos|meio)\\s+(?:importante|urgente)\\b',
+    resolve: () => 'media',
+  },
+  {
+    re: '\\b(?:(?:e|eh|isso\\s+e|que\\s+e|esta)\\s+)?(?:muito\\s+)?(?:urgente|urgentissim[oa]|urgentemente|importante|importantissim[oa]|critic[oa]|prioritari[oa]|prioridade)\\b',
+    resolve: () => 'alta',
+  },
+  {
+    re: '\\b(?:(?:e|eh)\\s+)?(?:pra|para)\\s+ontem\\b|\\bo\\s+(?:quanto|mais\\s+rapido)\\s+(?:antes|possivel)\\b|\\b(?:sem\\s+falta|impreterivelmente|asap)\\b',
     resolve: () => 'alta',
   },
 ];
 
 const DATE_RULES = [
-  { re: `${PRE}\\bdepois\\s+de\\s+amanha\\b`, resolve: (m, now) => addDays(now, 2) },
-  { re: `${PRE}\\bamanha\\b`, resolve: (m, now) => addDays(now, 1) },
-  { re: `${PRE}\\bhoje\\b`, resolve: (m, now) => startOfDay(now) },
+  { re: `${L}${PRE}\\bdepois\\s+de\\s+amanha\\b`, resolve: (m, now) => addDays(now, 2) },
+  { re: `${L}${PRE}\\bamanha\\b`, resolve: (m, now) => addDays(now, 1) },
+  { re: `${L}${PRE}\\bhoje\\b`, resolve: (m, now) => startOfDay(now) },
   {
-    re: `${PRE}\\b(?:dia\\s+)?(\\d{1,2})\\/(\\d{1,2})(?:\\/(\\d{2,4}))?\\b`,
+    re: `${L}${PRE}\\b(?:dia\\s+)?(\\d{1,2})\\/(\\d{1,2})(?:\\/(\\d{2,4}))?\\b`,
     resolve: (m, now) => explicitDate(now, Number(m[1]), Number(m[2]) - 1, m[3]),
   },
   {
-    re: `${PRE}\\b(?:dia\\s+)?(${NUM})\\s+de\\s+(${MONTH_RE})(?:\\s+de\\s+(\\d{4}))?\\b`,
+    re: `${L}${PRE}\\b(?:dia\\s+)?(${NUM})\\s+de\\s+(${MONTH_RE})(?:\\s+de\\s+(\\d{4}))?\\b`,
     resolve: (m, now) => explicitDate(now, toNumber(m[1]), MONTHS[m[2]], m[3]),
   },
-  { re: `${PRE}\\bdia\\s+(${NUM})\\b`, resolve: (m, now) => dayOfMonth(now, toNumber(m[1])) },
+  { re: `${L}${PRE}\\bdia\\s+(${NUM})\\b`, resolve: (m, now) => dayOfMonth(now, toNumber(m[1])) },
   {
-    re: `${PRE}\\b(?:(?:proxima|proximo)\\s+)?(?:(${WORKDAY_RE})[- ]feira|(sabado|domingo))${NEXT_WEEK}\\b`,
+    re: `${L}${PRE}\\b(?:(?:proxima|proximo)\\s+)?(?:(${WORKDAY_RE})[- ]feira|(sabado|domingo))${NEXT_WEEK}\\b`,
     resolve: (m, now) => nextWeekday(now, m[1] || m[2]),
   },
   {
     // sem preposição, "segunda via" virava segunda-feira
-    re: `\\b(?:(?:para|pra|ate|na|nesta|nessa|proxima)\\s+){1,2}(${WORKDAY_RE})(?!\\s+(?:via|vez|chamada|opcao|parte|fase|etapa))${NEXT_WEEK}\\b`,
+    re: `${L}\\b(?:(?:para|pra|ate|na|nesta|nessa|proxima)\\s+){1,2}(${WORKDAY_RE})(?!\\s+(?:via|vez|chamada|opcao|parte|fase|etapa))${NEXT_WEEK}\\b`,
     resolve: (m, now) => nextWeekday(now, m[1]),
   },
-  { re: `\\b(${WORKDAY_RE})\\s+que\\s+vem\\b`, resolve: (m, now) => nextWeekday(now, m[1]) },
+  { re: `${L}\\b(${WORKDAY_RE})\\s+que\\s+vem\\b`, resolve: (m, now) => nextWeekday(now, m[1]) },
   {
-    re: `${PRE}\\b(?:daqui\\s+a|dentro\\s+de|em)\\s+(${NUM})\\s+dias?\\b`,
+    re: `${L}${PRE}\\b(?:daqui\\s+a|dentro\\s+de|em)\\s+(${NUM})\\s+dias?\\b`,
     resolve: (m, now) => addDays(now, toNumber(m[1])),
   },
   {
-    re: `${PRE}\\b(?:semana\\s+que\\s+vem|proxima\\s+semana)\\b`,
+    re: `${L}${PRE}\\b(?:semana\\s+que\\s+vem|proxima\\s+semana)\\b`,
     resolve: (m, now) => addDays(now, 7),
   },
 ];
@@ -1271,7 +1381,8 @@ const COMPILED = {
   time: compile(TIME_RULES),
 };
 
-const LEADING_FILLER = /^(?:(?:eu\s+)?(?:tenho\s+que|tenho\s+de|preciso\s+de|preciso|lembrar\s+de|me\s+lembre\s+de|lembre-me\s+de|lembrete\s+(?:de|para)|nova\s+tarefa|tarefa|adicionar|agendar)\s*[:,]?\s+)+/;
+const LEADING_FILLER = /^(?:(?:eu\s+)?(?:tenho\s+que|tenho\s+de|preciso\s+de|preciso|lembrar\s+de|me\s+lembre\s+de|lembre-me\s+de|lembrete\s+(?:de|para)|nova\s+tarefa|adicionar|agendar)\s*[:,]?\s+)+/;
+const TRAILING_LEAD = /[\s,;]+(?:e\s+)?(?:eu\s+)?(?:tenho|preciso|temos|vou\s+ter)\s+(?:que|de)\s+(?:entregar|fazer|terminar|concluir)(?:\s+(?:isso|isto|ele|ela|tudo))?[\s,;.]*$/;
 const TRAILING_CONNECTOR = /(?:[\s,;:.-]+(?:para|pra|ate|no|na|em|de|do|da|e|com|as|a|o|que))+[\s,;:.-]*$/;
 
 function fold(text) {
@@ -1283,6 +1394,13 @@ function stripFolded(text, re) {
   return m ? text.slice(0, m.index) + text.slice(m.index + m[0].length) : text;
 }
 
+function stripKeywordPreamble(text) {
+  const folded = fold(text);
+  const m = KEYWORD_RE.exec(folded);
+  if (!m || !KEYWORD_PREAMBLE.test(folded.slice(0, m.index))) return text;
+  return text.slice(m.index);
+}
+
 function buildTitle(text, spans) {
   let out = '';
   let cursor = 0;
@@ -1292,16 +1410,23 @@ function buildTitle(text, spans) {
   }
   out += text.slice(cursor);
 
-  out = out.replace(/\s+/g, ' ').replace(/\s+([,;.!?])/g, '$1').trim();
+  out = out.replace(/\s+/g, ' ').replace(/\s+([,;.!?])/g, '$1').replace(/([,;])(?:\s*[,;])+/g, '$1').trim();
+  out = stripKeywordPreamble(out);
   out = stripFolded(out, LEADING_FILLER);
+  out = stripFolded(out, TRAILING_LEAD);
   out = stripFolded(out, TRAILING_CONNECTOR);
   out = out.replace(/^[\s,;:.-]+|[\s,;:.-]+$/g, '').trim();
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
+function detectCategory(title) {
+  const m = KEYWORD_RE.exec(fold(title));
+  return m ? KEYWORD_TO_CATEGORY[m[1].replace(/\s+/g, ' ')] : null;
+}
+
 export function parseTask(input, now = new Date()) {
   const text = input.normalize('NFC').trim();
-  const state = { folded: fold(text), spans: [] };
+  const state = { folded: fold(text), spans: [], lastMatch: '' };
 
   const take = (rules) => {
     for (const rule of rules) {
@@ -1311,6 +1436,7 @@ export function parseTask(input, now = new Date()) {
       if (value == null) continue;
       const end = m.index + m[0].length;
       state.spans.push([m.index, end]);
+      state.lastMatch = m[0];
       state.folded = state.folded.slice(0, m.index) + ' '.repeat(m[0].length) + state.folded.slice(end);
       return value;
     }
@@ -1319,13 +1445,17 @@ export function parseTask(input, now = new Date()) {
 
   const priority = take(COMPILED.priority);
   const date = take(COMPILED.date);
+  const deadline = date != null && DEADLINE_HINT.test(state.lastMatch);
   const durationMin = take(COMPILED.duration);
   const time = take(COMPILED.time);
+  const title = buildTitle(text, state.spans);
 
   return {
-    title: buildTitle(text, state.spans),
+    title,
+    category: detectCategory(title),
     date: toISODate(date ?? now),
     dateSpecified: date != null,
+    deadline,
     time,
     durationMin,
     priority: priority ?? 'media',
@@ -1339,6 +1469,7 @@ export function parseTask(input, now = new Date()) {
 
 ```js
 import { toISODate, toHHMM, fromISODate, fromDateAndTime, toLocalDateTime, addDays } from './dates.js';
+import { CATEGORIES } from './parser.js';
 
 export const PRIORITIES = {
   alta: { label: 'Alta', colorId: '11', rank: 0 },   // Tomate
@@ -1393,11 +1524,23 @@ function taskToEvent(task) {
   const p = PRIORITIES[task.priority] ?? PRIORITIES.media;
   const event = {
     summary: task.done ? `${DONE_PREFIX} ${task.title}` : task.title,
-    description: [`Prioridade: ${p.label}`, task.source ? `Ditado: "${task.source}"` : null, 'Criada pelo app Tarefas por Voz.']
-      .filter(Boolean).join('\n'),
+    description: [
+      task.category ? `Tipo: ${CATEGORIES[task.category]}` : null,
+      `Prioridade: ${p.label}`,
+      task.deadline ? 'Prazo de entrega' : null,
+      task.source ? `Ditado: "${task.source}"` : null,
+      'Criada pelo app Tarefas por Voz.',
+    ].filter(Boolean).join('\n'),
     colorId: task.done ? DONE_COLOR : p.colorId,
     extendedProperties: {
-      private: { app: APP_TAG, priority: task.priority, done: String(!!task.done), source: task.source ?? '' },
+      private: {
+        app: APP_TAG,
+        priority: task.priority,
+        category: task.category ?? '',
+        deadline: String(!!task.deadline),
+        done: String(!!task.done),
+        source: task.source ?? '',
+      },
     },
     reminders: { useDefault: false, overrides: task.done ? [] : REMINDERS[task.time ? 'timed' : 'allDay'][task.priority] },
   };
@@ -1421,6 +1564,8 @@ function eventToTask(event) {
     // emojis são da versão antiga
     title: event.summary?.replace(/^(?:✓|🔴|🟡|🟢|✅)\s*/u, '') ?? '(sem título)',
     priority: priv.priority in PRIORITIES ? priv.priority : 'media',
+    category: priv.category in CATEGORIES ? priv.category : null,
+    deadline: priv.deadline === 'true',
     done: priv.done === 'true',
     source: priv.source || null,
     link: event.htmlLink ?? null,
@@ -1774,6 +1919,47 @@ self.addEventListener('fetch', (event) => {
       { title: 'Treino de corrida', date: '2026-10-27', time: '07:00', durationMin: 45 }],
     ['dentista dia 31',
       { title: 'Dentista', date: '2026-10-31' }],
+
+    ['tenho um trabalho de história sobre a revolução francesa pra entregar até sexta prioridade alta',
+      { title: 'Trabalho de história sobre a revolução francesa', category: 'trabalho', date: '2026-10-23', deadline: true, priority: 'alta' }],
+    ['prova de cálculo na quinta às 10h',
+      { title: 'Prova de cálculo', category: 'prova', date: '2026-10-22', time: '10:00', deadline: false }],
+    ['estou sendo cobrado pelo relatório de vendas, prazo até amanhã',
+      { title: 'Relatório de vendas', category: 'trabalho', date: '2026-10-21', deadline: true, priority: 'media' }],
+    ['projeto de robótica tenho prazo até dia 30 sem pressa',
+      { title: 'Projeto de robótica', category: 'projeto', date: '2026-10-30', deadline: true, priority: 'baixa' }],
+    ['aula de inglês amanhã às 19h',
+      { title: 'Aula de inglês', category: 'aula', date: '2026-10-21', time: '19:00' }],
+    ['missão: limpar a garagem no sábado, é muito importante',
+      { title: 'Missão: limpar a garagem', category: 'missao', date: '2026-10-24', priority: 'alta' }],
+    ['tarefa de casa de matemática a entrega é dia 28',
+      { title: 'Tarefa de casa de matemática', category: 'tarefa', date: '2026-10-28', deadline: true }],
+    ['lista de exercícios de física, não é urgente, vence dia 2 de novembro',
+      { title: 'Lista de exercícios de física', category: 'tarefa', date: '2026-11-02', deadline: true, priority: 'baixa' }],
+    ['trabalho em grupo tem que estar pronto até quarta, prioridade média',
+      { title: 'Trabalho em grupo', category: 'trabalho', date: '2026-10-21', deadline: true, priority: 'media', prioritySpecified: true }],
+    ['seminário de biologia o prazo é segunda-feira e é urgente',
+      { title: 'Seminário de biologia', category: 'trabalho', date: '2026-10-26', deadline: true, priority: 'alta' }],
+    ['estudar para a prova de química que vai ser na sexta',
+      { title: 'Estudar para a prova de química', category: 'prova', date: '2026-10-23', deadline: false }],
+    ['o professor passou um trabalho de geografia pra semana que vem',
+      { title: 'Trabalho de geografia', category: 'trabalho', date: '2026-10-27' }],
+    ['entregar relatório até amanhã sem falta',
+      { title: 'Entregar relatório', date: '2026-10-21', deadline: true, priority: 'alta' }],
+    ['tô sendo cobrado pra sexta pelo relatório do mês',
+      { title: 'Relatório do mês', category: 'trabalho', date: '2026-10-23', deadline: true }],
+    ['ir para o trabalho amanhã às 8',
+      { title: 'Ir para o trabalho', date: '2026-10-21', time: '08:00' }],
+    ['tenho que terminar o tcc, a data limite é 15 de dezembro, prioridade máxima',
+      { title: 'Tcc', category: 'trabalho', date: '2026-12-15', deadline: true, priority: 'alta' }],
+    ['ler capítulo 3 quando der',
+      { title: 'Ler capítulo 3', category: null, priority: 'baixa' }],
+    ['dever de casa de português até depois de amanhã, a prioridade é baixa',
+      { title: 'Dever de casa de português', category: 'tarefa', date: '2026-10-22', priority: 'baixa' }],
+    ['comprar presente, isso não é prioridade',
+      { title: 'Comprar presente', priority: 'baixa' }],
+    ['simulado do enem domingo às 13h30',
+      { title: 'Simulado do enem', category: 'prova', date: '2026-10-25', time: '13:30' }],
   ];
 
   let passed = 0;
